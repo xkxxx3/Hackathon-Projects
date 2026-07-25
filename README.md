@@ -1,14 +1,19 @@
 # Hackathon Projects
 
-Collection of my Hackathon projects.
+Collection of my Hackathon projects across years.
 
 ## Projects
 
 ### 2026 - Spatial AI Game Demo
 Interactive spatial game demo using AI-generated content for Douyin Hackathon.
-- [Project Details](./2026-spatial-ai-game/README.md)
+**Status:** In Progress
+**Tech Stack:** HTML5, Canvas, JavaScript, AI Image Generation
 
-### 2024 - Cat MBTI
+### 2024 - Cat MBTI  
 Cat personality MBTI classification game.
-- [Project Details](./2024-cat-mbti/README.md)
+**Status:** Completed
+**Tech Stack:** Python, React
 
+---
+
+For detailed information about each project, see the respective project directories.
