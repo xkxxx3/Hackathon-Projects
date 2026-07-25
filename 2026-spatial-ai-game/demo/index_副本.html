@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>空间即兴游戏 · Demo</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { font-family:-apple-system,"PingFang SC","Microsoft YaHei",sans-serif; background:#111; display:flex; justify-content:center; min-height:100vh; }
+  #phone { width:100%; max-width:420px; min-height:100vh; background:#fafafa; display:flex; flex-direction:column; position:relative; overflow:hidden; }
+  .screen { flex:1; display:flex; flex-direction:column; padding:20px; animation:fadein .3s ease; }
+  @keyframes fadein { from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none} }
+  .topbar { font-size:13px; color:#999; padding-bottom:12px; display:flex; justify-content:space-between; }
+  h1 { font-size:22px; margin-bottom:6px; color:#222; }
+  .sub { font-size:14px; color:#888; margin-bottom:20px; line-height:1.6; }
+  .btn { display:block; width:100%; padding:15px; border:none; border-radius:14px; background:#fe2c55; color:#fff; font-size:17px; font-weight:600; cursor:pointer; margin-top:14px; }
+  .btn:active { transform:scale(.98); }
+  .btn.ghost { background:#fff; color:#555; border:1px solid #ddd; font-weight:400; }
+  .card { background:#fff; border-radius:16px; padding:16px; margin-bottom:12px; box-shadow:0 1px 4px rgba(0,0,0,.06); }
+  /* 收藏视频卡片 */
+  .video-thumb { height:180px; border-radius:12px; background:linear-gradient(135deg,#3b2f63,#7a4dbf); display:flex; align-items:center; justify-content:center; flex-direction:column; color:#fff; margin-bottom:12px; position:relative; }
+  .video-thumb .emoji { font-size:52px; }
+  .video-thumb .play { position:absolute; right:12px; bottom:10px; font-size:12px; opacity:.85; }
+  .tag { display:inline-block; font-size:12px; background:#ffe8ed; color:#fe2c55; border-radius:6px; padding:2px 8px; margin-right:6px; }
+  .tag.gray { background:#f0f0f0; color:#888; }
+  /* 拍摄 */
+  .camera { height:220px; border-radius:16px; background:linear-gradient(160deg,#2a2a2e,#4c4c52); display:flex; align-items:center; justify-content:center; flex-direction:column; color:#bbb; margin-bottom:16px; font-size:14px; gap:10px; }
+  .camera .lens { font-size:44px; animation:pan 2.4s ease-in-out infinite alternate; }
+  @keyframes pan { from{transform:translateX(-30px) rotate(-6deg)} to{transform:translateX(30px) rotate(6deg)} }
+  /* 物件确认 */
+  .obj { display:flex; align-items:center; justify-content:space-between; padding:13px 4px; border-bottom:1px solid #f2f2f2; }
+  .obj:last-child { border-bottom:none; }
+  .obj label { font-size:16px; color:#333; display:flex; align-items:center; gap:10px; flex:1; cursor:pointer; }
+  .obj input[type=checkbox] { width:20px; height:20px; accent-color:#fe2c55; }
+  .obj .cnt { font-size:13px; color:#999; }
+  .players { display:flex; align-items:center; gap:16px; justify-content:center; padding:10px 0; }
+  .players button { width:42px; height:42px; border-radius:50%; border:1px solid #ddd; background:#fff; font-size:22px; color:#fe2c55; cursor:pointer; }
+  .players .num { font-size:30px; font-weight:700; width:60px; text-align:center; color:#222; }
+  .hint { font-size:12px; color:#aaa; text-align:center; margin-top:10px; line-height:1.6; }
+  /* 生成中 */
+  .loading { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px; color:#666; font-size:15px; }
+  .spinner { width:46px; height:46px; border:4px solid #f0d0d8; border-top-color:#fe2c55; border-radius:50%; animation:spin .8s linear infinite; }
+  @keyframes spin { to{transform:rotate(360deg)} }
+  /* 变体卡片 */
+  .variant { border:2px solid transparent; cursor:pointer; transition:border .15s; }
+  .variant:active { border-color:#fe2c55; }
+  .variant h3 { font-size:18px; color:#222; margin-bottom:6px; }
+  .variant .desc { font-size:14px; color:#666; line-height:1.7; }
+  .variant .pick { margin-top:10px; text-align:right; font-size:14px; color:#fe2c55; font-weight:600; }
+  /* 发令台 */
+  .host { background:#17171c; flex:1; margin:-20px; padding:28px 22px; display:flex; flex-direction:column; color:#eee; }
+  .hook { font-size:24px; font-weight:700; line-height:1.5; color:#fff; margin-bottom:18px; }
+  .rulecard { background:#232330; border-radius:14px; padding:16px; margin-bottom:16px; }
+  .rulecard li { list-style:none; font-size:16px; padding:7px 0; color:#ddd; display:flex; gap:10px; }
+  .rulecard li::before { content:"•"; color:#fe2c55; font-weight:700; }
+  .statebar { display:flex; gap:8px; margin-bottom:14px; }
+  .state { flex:1; text-align:center; font-size:12px; padding:7px 0; border-radius:8px; background:#232330; color:#777; }
+  .state.on { background:#fe2c55; color:#fff; font-weight:600; }
+  .timer { font-size:64px; font-weight:800; text-align:center; font-variant-numeric:tabular-nums; margin:8px 0 4px; color:#fff; }
+  .timer.warn { color:#ffb02e; }
+  .event-banner { background:#3d2800; border:1px solid #ffb02e; color:#ffce6b; border-radius:12px; padding:12px; font-size:15px; text-align:center; margin-bottom:12px; display:none; animation:fadein .3s; }
+  .speaking { font-size:13px; color:#8a8; text-align:center; height:20px; margin-bottom:8px; }
+  /* 结果 */
+  .result-card { background:linear-gradient(150deg,#fe2c55,#a12cfe); border-radius:18px; padding:22px; color:#fff; margin-bottom:16px; }
+  .result-card h3 { font-size:20px; margin-bottom:10px; }
+  .result-card p { font-size:14px; opacity:.92; line-height:1.7; }
+  .result-card .origin { font-size:12px; opacity:.75; margin-top:12px; }
+  /* 抖音模拟页（全屏视频 + 悬浮胶囊，参考「画圈搜索」交互位） */
+  .dy { background:#000; flex:1; margin:-20px; display:flex; flex-direction:column; color:#fff; position:relative; overflow:hidden; min-height:100vh; }
+  .dy-video { position:absolute; inset:0; background:linear-gradient(160deg,#1c1030,#43217a); display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px; }
+  .dy-video .emoji { font-size:70px; }
+  .dy-play { position:absolute; top:44%; left:50%; transform:translate(-50%,-50%); font-size:44px; opacity:.35; }
+  /* 悬浮胶囊：画面中部偏右，白底黑字，同「画圈搜索」样式 */
+  .dy-tag { position:absolute; top:52%; left:50%; transform:translateX(-30%); display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,.95); color:#222; border-radius:22px; padding:9px 16px; font-size:14px; font-weight:600; cursor:pointer; box-shadow:0 2px 10px rgba(0,0,0,.35); animation:pulse 1.6s infinite; z-index:3; }
+  .dy-tag .arr { color:#999; font-weight:400; }
+  .dy-tag::before { content:""; position:absolute; left:-14px; top:50%; width:5px; height:5px; border-radius:50%; background:rgba(255,255,255,.8); transform:translateY(-50%); }
+  @keyframes pulse { 0%,100%{transform:translateX(-30%) scale(1)} 50%{transform:translateX(-30%) scale(1.05)} }
+  /* 右侧互动栏 */
+  .dy-side { position:absolute; right:10px; bottom:120px; display:flex; flex-direction:column; gap:18px; align-items:center; z-index:2; }
+  .dy-side .it { text-align:center; font-size:11px; color:#fff; }
+  .dy-side .it .ic { font-size:26px; display:block; margin-bottom:2px; }
+  /* 底部文案区 */
+  .dy-meta { position:absolute; left:14px; right:70px; bottom:24px; font-size:14px; color:#eee; line-height:1.7; z-index:2; text-shadow:0 1px 3px rgba(0,0,0,.6); }
+  .dy-meta .author { font-weight:700; margin-bottom:4px; }
+  .dy-hint { position:absolute; top:12px; left:0; right:0; text-align:center; font-size:11px; color:rgba(255,255,255,.45); z-index:2; }
+  /* 授权弹窗 */
+  .mask { position:absolute; inset:0; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; z-index:10; padding:24px; }
+  .modal { background:#fff; border-radius:18px; padding:22px; width:100%; }
+  .modal h3 { font-size:18px; color:#222; margin-bottom:8px; }
+  .modal p { font-size:14px; color:#777; line-height:1.7; margin-bottom:6px; }
+  .rec-dot { display:inline-block; width:10px; height:10px; border-radius:50%; background:#fe2c55; margin-right:6px; animation:blink 1s infinite; }
+  @keyframes blink { 50%{opacity:.2} }
+  /* 精彩片段预览 */
+  .clip { display:flex; gap:8px; margin:12px 0; }
+  .clip .seg { flex:1; height:76px; border-radius:10px; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; font-size:12px; gap:4px; }
+  .clip .seg b { font-size:20px; }
+  .toast { position:absolute; left:50%; bottom:80px; transform:translateX(-50%); background:rgba(0,0,0,.8); color:#fff; font-size:14px; padding:10px 20px; border-radius:24px; z-index:20; animation:fadein .3s; }
+</style>
+</head>
+<body>
+<div id="phone"><div id="app"></div></div>
+<script>
+/* ================= 状态 ================= */
+const S = {
+  mode: 'video',      // 'video' = 视频改造 | 'scene' = 即景生成
+  recording: false,   // 开局前授权结果
+  evMark: null,       // 随机事件触发秒（用于时间戳剪辑演示）
+  players: 6,
+  objects: [
+    { id:'cups',    name:'纸杯',   count:6, emoji:'🥤', on:true },
+    { id:'chops',   name:'筷子',   count:8, emoji:'🥢', on:true },
+    { id:'napkins', name:'餐巾纸', count:1, emoji:'🧻', on:true },
+    { id:'turn',    name:'桌面转盘', count:1, emoji:'🔄', on:true },
+    { id:'menu',    name:'菜单',   count:2, emoji:'📋', on:false },
+  ],
+  chosen: null,
+  eventFired: false,
+  roundSec: 90,
+};
+
+/* ================= TTS ================= */
+function speak(text, cb){
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'zh-CN'; u.rate = 1.05;
+    u.onend = () => { setSpeaking(false); cb && cb(); };
+    u.onerror = () => { setSpeaking(false); cb && cb(); };
+    setSpeaking(true);
+    speechSynthesis.speak(u);
+  } catch(e){ cb && cb(); }
+}
+function setSpeaking(on){
+  const el = document.getElementById('speaking');
+  if (el) el.textContent = on ? '🔊 AI 主持人正在讲话…' : '';
+}
+
+/* ================= 变体生成引擎（本地模板 × 已确认物件 × 人数） ================= */
+function genVariants(){
+  const has = id => { const o = S.objects.find(o=>o.id===id); return o && o.on; };
+  const cnt = id => { const o = S.objects.find(o=>o.id===id); return o ? o.count : 0; };
+  const n = S.players, half = Math.ceil(n/2);
+  const pool = [];
+
+  if (has('napkins')) pool.push({
+    name:'纸团不落桌接力', skeleton:'接力',
+    hook:`这局要用桌上的餐巾纸玩不落桌接力！`,
+    desc:`${n} 人分两组隔位坐开，揉一个纸团用手掌拍击保持在空中，按座位顺序传给队友；落桌由失误者重新发起。90 秒内传递轮数多的组赢。`,
+    rules:[`${n} 人分两组，隔位坐开`,`揉一个餐巾纸团`,`手掌拍击传给下一位队友`,`落桌者重新发起`,`90 秒传递轮数多者胜`],
+    speech:`规则很简单。${n}个人分成两组，隔位坐开。把餐巾纸揉成一个纸团，用手掌拍击，让它不落桌，按座位顺序传给你的队友。纸团掉在桌上，必须由失误的人重新发起。90秒倒计时，传递轮数多的组获胜。准备好了吗？`
+  });
+
+  if (has('cups') && cnt('cups')>=4) pool.push({
+    name:'纸杯叠塔限时赛', skeleton:'搭建',
+    hook:`这局要用桌上的 ${cnt('cups')} 个纸杯玩限时叠塔！`,
+    desc:`两组各分 ${Math.floor(cnt('cups')/2)} 个纸杯，轮流单手叠塔，塔倒本轮作废重叠。60 秒内塔层数高的组赢${has('turn')?'；转盘转到谁面前谁操作':''}。`,
+    rules:[`两组各 ${Math.floor(cnt('cups')/2)} 个纸杯`,`只能单手操作`,`塔倒了重新叠`,has('turn')?'转盘指到谁谁上手':'轮流上手，每人一次',`60 秒塔高者胜`].filter(Boolean),
+    speech:`规则来了。两组各拿${Math.floor(cnt('cups')/2)}个纸杯，只能用单手叠塔，塔倒了本轮作废重新叠。${has('turn')?'转盘转到谁面前，就由谁操作。':'组内轮流上手，每人叠一次。'}60秒倒计时，塔层数高的组获胜。准备好了吗？`
+  });
+
+  if (has('chops') && has('napkins')) pool.push({
+    name:'筷子运纸团', skeleton:'接力',
+    hook:`这局要用筷子夹着纸团绕桌接力！`,
+    desc:`${n} 人分两组，用筷子夹纸团沿桌沿传递一圈，掉落原地重夹。90 秒内完成圈数多的组赢。`,
+    rules:[`${n} 人分两组`,`筷子夹纸团沿桌传递`,`掉落原地重夹`,`不许用手碰纸团`,`90 秒圈数多者胜`],
+    speech:`规则很简单。${n}个人分成两组，每组一双筷子一个纸团。用筷子夹住纸团，沿着桌沿传递一圈，全程不许用手碰。掉了就原地重新夹好再走。90秒倒计时，完成圈数多的组获胜。准备好了吗？`
+  });
+
+  if (has('cups')) pool.push({
+    name:'吹杯过桌竞速', skeleton:'限时挑战',
+    hook:`这局要把纸杯从桌这头吹到那头！`,
+    desc:`两组各一个倒扣纸杯，只能用嘴吹动横穿桌面，出界拉回起点。先到对岸的组赢，两轮定胜负。`,
+    rules:[`纸杯倒扣在桌沿`,`只能用嘴吹`,`出界回起点`,`先到对岸者胜`,`两轮定胜负`],
+    speech:`规则来了。两组各一个倒扣的纸杯放在桌沿，只能用嘴吹，让它横穿桌面到对岸。吹出界就拉回起点重来。先到对岸的组赢，两轮定胜负。准备好了吗？`
+  });
+
+  if (has('menu')) pool.push({
+    name:'菜单盲猜挑战', skeleton:'猜测',
+    hook:`这局要用菜单玩盲猜价格！`,
+    desc:`轮流指一道菜遮住价格，其他人竞猜，最接近者得 1 分。5 轮总分高者赢。`,
+    rules:[`轮流出题遮价格`,`其他人同时报数`,`最接近得 1 分`,`5 轮定胜负`],
+    speech:`规则很简单。轮流从菜单里指一道菜，遮住价格，其他人同时猜价，最接近的得一分。五轮下来总分最高的人获胜。准备好了吗？`
+  });
+
+  return pool.slice(0, 3);
+}
+
+/* ================= 随机事件池（内容随机 + 时点随机） ================= */
+const EVENTS = [
+  '全体改用非惯用手！',
+  '顺序反转！从最后一位重新开始！',
+  '接下来 15 秒，动作必须放慢一倍！',
+  '当前领先的组，下一棒必须闭一只眼！',
+];
+
+/* ================= 屏幕渲染 ================= */
+const app = document.getElementById('app');
+
+/* —— 屏 0：抖音模拟页（被动触达入口）—— */
+function screenDouyin(){
+  S.mode = 'video';
+  app.innerHTML = `
+  <div class="screen"><div class="dy">
+    <div class="dy-video">
+      <div class="emoji">🎈</div>
+      <div style="font-size:17px;font-weight:700">气球不落地接力挑战</div>
+      <div style="font-size:12px;opacity:.6">全场笑声一个接一个</div>
+    </div>
+    <div class="dy-play">▶</div>
+    <div class="dy-hint">模拟抖音视频页 ·「玩同款」为平台挂载胶囊（同「画圈搜索」交互位），Demo 中模拟</div>
+    <span class="dy-tag" onclick="tagJump()">🎮 玩同款 <span class="arr">›</span></span>
+    <div class="dy-side">
+      <div class="it"><span class="ic">❤️</span>2293</div>
+      <div class="it"><span class="ic">💬</span>17</div>
+      <div class="it"><span class="ic">⭐</span>2050</div>
+      <div class="it"><span class="ic">↗️</span>1555</div>
+    </div>
+    <div class="dy-meta">
+      <div class="author">@聚会玩法收集舍 · 03月24日</div>
+      六个人快笑疯了哈哈哈哈，氛围直接拉满 #聚会游戏 #接力挑战
+    </div>
+  </div></div>`;
+}
+function tagJump(){
+  app.innerHTML = `
+  <div class="screen"><div class="loading">
+    <div class="spinner"></div>
+    <div>正在跳转小程序…</div>
+    <div style="font-size:12px;color:#aaa">视频 ID 已随参数带入 · 后端正在提取玩法骨架</div>
+  </div></div>`;
+  setTimeout(screenBranch, 1400);
+}
+
+/* —— 屏 0b：跳转后分流：立即玩 or 收藏 —— */
+function screenBranch(){
+  app.innerHTML = `
+  <div class="screen">
+    <div class="topbar"><span>玩法已提取</span><span>来自「玩同款」</span></div>
+    <h1>气球不落地接力</h1>
+    <p class="sub">AI 已从视频提取玩法骨架：<b>接力 · 分组对抗</b> · 需要传递物 × 竞速节奏。<br>现在就玩，还是先存着？</p>
+    <div class="card">
+      <span class="tag">接力</span><span class="tag">分组对抗</span><span class="tag gray">原视频需要：气球 × 场地</span>
+      <button class="btn" onclick="screenScan()">现在就玩 · 拍我的现场</button>
+      <button class="btn ghost" onclick="collectCase()">先收藏 · 等有空再玩</button>
+    </div>
+    <p class="hint">刷到时往往不方便玩——收藏后，等菜/等车时打开小程序随时开局</p>
+  </div>`;
+}
+function collectCase(){
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = '✅ 已收藏，等菜时见';
+  document.getElementById('phone').appendChild(t);
+  setTimeout(()=>{ t.remove(); screenHome(); }, 1200);
+}
+
+/* —— 屏 1：小程序首页（主动打开：双入口）—— */
+function screenHome(){
+  app.innerHTML = `
+  <div class="screen">
+    <div class="topbar"><span>空间即兴游戏 · 小程序</span><span>主动入口</span></div>
+    <h1>等菜有点无聊？</h1>
+    <p class="sub">玩收藏的玩法，或者直接拍一张，AI 就地给你造一个。</p>
+    <div class="card">
+      <div style="font-size:13px;color:#999;margin-bottom:8px">我的收藏（1）</div>
+      <div class="video-thumb" style="height:120px">
+        <div class="emoji" style="font-size:36px">🎈</div>
+        <div style="font-size:14px">气球不落地接力挑战</div>
+      </div>
+      <button class="btn" onclick="S.mode='video';screenScan()">同款开局 · 在我这桌玩</button>
+    </div>
+    <div class="card">
+      <div style="font-size:13px;color:#999;margin-bottom:8px">没收藏也能玩</div>
+      <button class="btn ghost" style="margin-top:0" onclick="S.mode='scene';screenScan()">📷 直接拍照 · AI 即景生成小游戏</button>
+    </div>
+    <p class="hint">即景生成：AI 从 6 种验证过的玩法骨架中按你的场景选型，不是从零发明</p>
+  </div>`;
+}
+
+/* —— 屏 2：拍摄桌面 → 物件确认 —— */
+function screenScan(){
+  app.innerHTML = `
+  <div class="screen">
+    <div class="topbar"><span>① 拍一圈桌面</span><span>约 5 秒</span></div>
+    <div class="camera"><div class="lens">📷</div><div>正在识别桌面物件…</div></div>
+  </div>`;
+  setTimeout(screenConfirm, 1600);
+}
+
+function screenConfirm(){
+  app.innerHTML = `
+  <div class="screen">
+    <div class="topbar"><span>② 确认现场条件</span><span>识别结果可勾选</span></div>
+    <h1>识别到这些物件</h1>
+    <p class="sub">只有你确认的物件才会进入游戏规则。</p>
+    <div class="card" id="objlist">
+      ${S.objects.map((o,i)=>`
+        <div class="obj">
+          <label><input type="checkbox" ${o.on?'checked':''} onchange="S.objects[${i}].on=this.checked">
+          <span>${o.emoji} ${o.name}</span></label>
+          <span class="cnt">× ${o.count}</span>
+        </div>`).join('')}
+    </div>
+    <div class="card">
+      <div style="text-align:center;font-size:14px;color:#888;margin-bottom:4px">几个人玩？</div>
+      <div class="players">
+        <button onclick="chgPlayers(-1)">−</button>
+        <div class="num" id="pnum">${S.players}</div>
+        <button onclick="chgPlayers(1)">＋</button>
+      </div>
+    </div>
+    <button class="btn" onclick="screenGenerating()">生成专属玩法</button>
+    <p class="hint">场景：餐厅等菜 → 自动只生成桌面可完成的玩法</p>
+  </div>`;
+}
+function chgPlayers(d){
+  S.players = Math.min(10, Math.max(2, S.players + d));
+  document.getElementById('pnum').textContent = S.players;
+}
+
+/* —— 屏 3：生成中 → 3 候选秒选 —— */
+function screenGenerating(){
+  app.innerHTML = `
+  <div class="screen"><div class="loading">
+    <div class="spinner"></div>
+    <div>正在把「气球接力」改造成你这桌的玩法…</div>
+    <div style="font-size:12px;color:#aaa">保留接力节奏 · 绑定已确认物件 · 加入随机变化</div>
+  </div></div>`;
+  setTimeout(screenVariants, 1800);
+}
+
+function screenVariants(){
+  const vs = genVariants();
+  if (!vs.length) { alert('至少勾选一个物件'); return screenConfirm(); }
+  window.__variants = vs;
+  const isVideo = S.mode === 'video';
+  app.innerHTML = `
+  <div class="screen">
+    <div class="topbar"><span>③ 选一个开局</span><span>组织者秒选</span></div>
+    <h1>3 个专属变体</h1>
+    <p class="sub">${isVideo ? '都保留了原视频的接力竞速内核，但只在你这桌这么玩。' : '从 6 种验证过的骨架里为你这桌选的型——不是从零发明。'}</p>
+    ${vs.map((v,i)=>`
+      <div class="card variant" onclick="pickVariant(${i})">
+        <h3>${v.name} <span class="tag gray">${v.skeleton}</span></h3>
+        <div class="desc">${v.desc}</div>
+        <div class="pick">选这个开局 →</div>
+      </div>`).join('')}
+  </div>`;
+}
+function pickVariant(i){ S.chosen = window.__variants[i]; screenRecAsk(); }
+
+/* —— 屏 3b：开局前录制授权 —— */
+function screenRecAsk(){
+  screenHost(); // 先渲染发令台作背景
+  const mask = document.createElement('div');
+  mask.className = 'mask'; mask.id = 'recMask';
+  mask.innerHTML = `
+    <div class="modal">
+      <h3>📹 要不要顺便录下这局？</h3>
+      <p>手机就立在桌上，AI 会在游戏进行时录制，结束后自动剪出 30 秒精彩片段。</p>
+      <p style="font-size:12px;color:#aaa">· 默认不录，你主动开启才录<br>· 开启后 AI 会语音告知全桌"本局将录制"<br>· 成片先给你预览，发不发、发到哪，都由你决定</p>
+      <button class="btn" onclick="setRec(true)">开启录制</button>
+      <button class="btn ghost" onclick="setRec(false)">这局不录</button>
+    </div>`;
+  document.getElementById('phone').appendChild(mask);
+}
+function setRec(on){
+  S.recording = on;
+  document.getElementById('recMask').remove();
+  if (on) {
+    const bar = document.getElementById('recBar');
+    if (bar) { bar.style.display = 'block'; }
+    speak('本局将录制精彩画面，介意的朋友现在可以说哦。');
+  }
+}
+
+/* —— 屏 4：AI 发令台 —— */
+let timerId = null;
+function screenHost(){
+  const v = S.chosen;
+  S.eventFired = false;
+  app.innerHTML = `
+  <div class="screen"><div class="host">
+    <div class="statebar">
+      <div class="state on" id="st0">规则说明</div>
+      <div class="state" id="st1">进行中</div>
+      <div class="state" id="st2">随机事件</div>
+      <div class="state" id="st3">结束</div>
+    </div>
+    <div class="hook">${v.hook}</div>
+    <div id="recBar" style="display:none;font-size:13px;color:#ff8a9e;margin-bottom:10px"><span class="rec-dot"></span>录制中 · 结束后自动剪 30 秒精彩片段</div>
+    <div class="speaking" id="speaking"></div>
+    <div class="rulecard"><ul>${v.rules.map(r=>`<li>${r}</li>`).join('')}</ul></div>
+    <div class="event-banner" id="eventBanner"></div>
+    <div class="timer" id="timer">--</div>
+    <button class="btn" id="startBtn" onclick="startRound()">🔊 AI 念规则 → 开始</button>
+    <button class="btn ghost" onclick="stopAll();screenVariants()">换一个玩法</button>
+  </div></div>`;
+}
+
+function startRound(){
+  const v = S.chosen;
+  document.getElementById('startBtn').style.display = 'none';
+  speak(v.speech, () => {
+    speak('三，二，一，开始！', runTimer);
+  });
+}
+
+function runTimer(){
+  setState(1);
+  let t = S.roundSec;
+  // 随机事件：时点随机（30%~70% 区间），内容随机抽取
+  const evAt = Math.floor(S.roundSec * (0.3 + Math.random() * 0.4));
+  const evText = EVENTS[Math.floor(Math.random() * EVENTS.length)];
+  const el = document.getElementById('timer');
+  el.textContent = t;
+  timerId = setInterval(() => {
+    t--;
+    if (!el.isConnected) return stopAll();
+    el.textContent = t;
+    if (t <= 10) el.classList.add('warn');
+    if (t === evAt && !S.eventFired) {
+      S.eventFired = true;
+      setState(2);
+      const b = document.getElementById('eventBanner');
+      b.style.display = 'block';
+      b.textContent = '⚡ 随机事件：' + evText;
+      speak('随机事件！' + evText, () => setState(1));
+    }
+    if (t <= 0) {
+      stopAll();
+      setState(3);
+      speak('时间到！这一轮结束，报出你们的成绩吧！', screenResult);
+    }
+  }, 1000);
+}
+function setState(n){
+  for (let i = 0; i < 4; i++) {
+    const s = document.getElementById('st' + i);
+    if (s) s.className = 'state' + (i === n ? ' on' : '');
+  }
+}
+function stopAll(){ if (timerId) clearInterval(timerId); timerId = null; try{speechSynthesis.cancel();}catch(e){} }
+
+/* —— 屏 5：结果 · 精彩片段预览 / 卡片 · 同款开局 —— */
+function screenResult(){
+  const v = S.chosen;
+  const origin = S.mode === 'video' ? '改造自「气球不落地接力挑战」' : '即景生成 · 骨架库选型';
+  const ev = S.evMark || 45;
+  const clipBlock = S.recording ? `
+    <div class="card">
+      <div style="font-size:14px;color:#333;margin-bottom:4px">🎬 精彩片段已剪好（30 秒）</div>
+      <div style="font-size:12px;color:#999">发令台按自己的节奏表切片——不需要 AI 看懂画面，它知道每个高潮在哪一秒：</div>
+      <div class="clip">
+        <div class="seg" style="background:linear-gradient(150deg,#4a6fdc,#6a5acd)"><b>00:00</b>开始哨声 +5s<br>起跑混乱</div>
+        <div class="seg" style="background:linear-gradient(150deg,#dc7a4a,#cd5a5a)"><b>00:${String(ev).padStart(2,'0')}</b>随机事件 ±10s<br>全场反应峰值</div>
+        <div class="seg" style="background:linear-gradient(150deg,#4adc8a,#3aad6a)"><b>01:20</b>最后 10s<br>冲刺与欢呼</div>
+      </div>
+      <div style="font-size:12px;color:#aaa">（Demo 用占位段示意，实机为真实录像切片）</div>
+      <button class="btn" style="margin-top:8px" onclick="alert('Demo 占位：预览通过后，分享到微信群或发布抖音（带玩同款 tag）——发不发永远由用户手动决定')">预览成片 → 分享 / 发布</button>
+    </div>` : `
+    <button class="btn" onclick="alert('Demo 占位：生成规则与结果卡片，带同款开局入口')">发布卡片 · 带「同款开局」入口</button>`;
+  app.innerHTML = `
+  <div class="screen">
+    <div class="topbar"><span>④ 本局结束</span><span>专属游戏记忆</span></div>
+    <div class="result-card">
+      <h3>🏆 ${v.name}</h3>
+      <p>${v.desc}</p>
+      <p class="origin">${origin} · ${S.players} 人 · 餐厅等菜场景<br>这局只属于这张桌子、这群人、这顿饭。</p>
+    </div>
+    ${clipBlock}
+    <button class="btn ghost" onclick="screenVariants()">再来一局（换个变体）</button>
+    <button class="btn ghost" onclick="screenDouyin()">回到抖音入口重新演示</button>
+    <p class="hint">分享主路径：微信群/群聊 · 公开发布带「玩同款」tag 回流抖音是子集<br>下一个人点 tag → 在 TA 的场景拍摄 → 得到 TA 的专属变体</p>
+  </div>`;
+}
+
+screenDouyin();
+</script>
+</body>
+</html>
+l>
+ouyin();
+</script>
+</body>
+</html>
+l>
