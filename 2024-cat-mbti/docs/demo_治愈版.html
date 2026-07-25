@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>喵格匹配 · 治愈版</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --cream: #FFF8F0;
+    --cream-dark: #FAEFE0;
+    --orange: #FFB088;
+    --orange-light: #FFD4B8;
+    --orange-deep: #FF9A6C;
+    --matcha: #A8C97F;
+    --matcha-light: #C8DFA0;
+    --peach: #FFE4D6;
+    --brown: #5C4033;
+    --brown-light: #8B6F5B;
+    --muted: #B5A399;
+    --white: #FFFFFF;
+    --shadow-soft: 0 4px 20px rgba(196, 145, 110, 0.12);
+    --shadow-medium: 0 8px 30px rgba(196, 145, 110, 0.18);
+    --shadow-warm: 0 10px 40px rgba(255, 154, 108, 0.25);
+  }
+
+  body {
+    font-family: 'Quicksand', -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--cream);
+    color: var(--brown);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(circle at 10% 20%, var(--peach) 0%, transparent 25%),
+      radial-gradient(circle at 90% 80%, var(--matcha-light) 0%, transparent 25%);
+    background-attachment: fixed;
+  }
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    pointer-events: none;
+    opacity: 0.05;
+    background-image: radial-gradient(circle, var(--brown) 1.5px, transparent 1.5px);
+    background-size: 60px 60px;
+    z-index: 0;
+  }
+
+  .app { max-width: 420px; margin: 0 auto; min-height: 100vh; position: relative; z-index: 1; }
+
+  /* Header */
+  .header { padding: 32px 24px 20px; text-align: center; position: relative; }
+  .header::after {
+    content: '🐾';
+    position: absolute; bottom: 4px; right: 28px;
+    font-size: 22px; opacity: 0.25; transform: rotate(-15deg);
+  }
+  .header h1 { font-size: 28px; font-weight: 700; color: var(--brown); letter-spacing: 1px; }
+  .header p { font-size: 13px; color: var(--brown-light); margin-top: 6px; font-weight: 500; }
+  .header-emoji {
+    font-size: 42px; margin-bottom: 6px; display: inline-block;
+    animation: gentle-bob 3s ease-in-out infinite;
+  }
+  @keyframes gentle-bob {
+    0%, 100% { transform: translateY(0) rotate(-5deg); }
+    50% { transform: translateY(-6px) rotate(5deg); }
+  }
+
+  /* Screens */
+  .screen { display: none; padding: 8px 20px 24px; animation: softFade 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+  .screen.active { display: block; }
+  @keyframes softFade {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Upload */
+  .upload-zone {
+    border: 2px dashed var(--orange);
+    border-radius: 28px; padding: 40px 20px; text-align: center;
+    background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(10px);
+    transition: all 0.3s; cursor: pointer;
+  }
+  .upload-zone:hover {
+    transform: translateY(-2px); box-shadow: var(--shadow-warm); background: var(--white);
+  }
+  .upload-zone .icon { font-size: 56px; margin-bottom: 12px; display: inline-block; animation: gentle-bob 3s ease-in-out infinite; }
+  .upload-zone .title { font-size: 17px; font-weight: 600; margin-bottom: 6px; color: var(--brown); }
+  .upload-zone .hint { font-size: 12px; color: var(--brown-light); }
+
+  .sample-section { margin-top: 28px; }
+  .sample-title { font-size: 14px; color: var(--brown-light); margin-bottom: 14px; padding-left: 8px; font-weight: 600; }
+  .sample-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+  .sample-card {
+    aspect-ratio: 3/4; border-radius: 20px; background: var(--white);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: var(--shadow-soft); position: relative; overflow: hidden;
+    border: 2px solid transparent;
+  }
+  .sample-card:hover {
+    transform: translateY(-6px) scale(1.02);
+    border-color: var(--orange); box-shadow: var(--shadow-warm);
+  }
+  .sample-card .emoji { font-size: 44px; margin-bottom: 10px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.05)); }
+  .sample-card .name { font-size: 14px; font-weight: 700; color: var(--brown); }
+  .sample-card .desc { font-size: 10px; color: var(--brown-light); margin-top: 4px; padding: 0 6px; text-align: center; font-weight: 500; }
+  .sample-card .badge {
+    position: absolute; top: 8px; right: 8px;
+    background: var(--peach); color: var(--orange-deep);
+    font-size: 9px; padding: 3px 8px; border-radius: 10px; font-weight: 600;
+  }
+
+  /* Loading */
+  .loading-container { text-align: center; padding: 70px 20px; }
+  .loading-cat { font-size: 90px; display: inline-block; animation: cat-jump 0.8s cubic-bezier(0.4, 0, 0.2, 1) infinite alternate; }
+  @keyframes cat-jump {
+    from { transform: translateY(0) rotate(-3deg) scale(1); }
+    to { transform: translateY(-16px) rotate(3deg) scale(1.05); }
+  }
+  .loading-text { font-size: 17px; margin-top: 32px; font-weight: 600; color: var(--brown); }
+  .loading-steps { margin-top: 32px; font-size: 13px; color: var(--muted); }
+  .loading-steps div {
+    padding: 10px 16px; margin: 4px auto; max-width: 280px;
+    border-radius: 14px; opacity: 0.4; transition: all 0.4s; font-weight: 500;
+  }
+  .loading-steps div.active {
+    opacity: 1; color: var(--orange-deep);
+    background: var(--peach); transform: scale(1.03);
+  }
+  .loading-steps div.done {
+    opacity: 0.7; color: var(--matcha);
+    background: rgba(168, 201, 127, 0.15);
+  }
+
+  /* Result card */
+  .result-card {
+    background: linear-gradient(135deg, #FFE4D6 0%, #FFD4B8 50%, #FFB088 100%);
+    border-radius: 28px; padding: 28px 22px; margin-bottom: 24px;
+    position: relative; overflow: hidden; box-shadow: var(--shadow-warm);
+  }
+  .result-card::before {
+    content: '🐾'; position: absolute; top: 16px; right: 18px;
+    font-size: 64px; opacity: 0.12; transform: rotate(15deg);
+  }
+  .result-card::after {
+    content: '🐾'; position: absolute; bottom: -8px; left: 12px;
+    font-size: 42px; opacity: 0.1; transform: rotate(-25deg);
+  }
+  .result-mbti-row { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; position: relative; z-index: 2; }
+  .result-mbti { font-size: 38px; font-weight: 700; letter-spacing: 3px; color: var(--brown); }
+  .result-nickname { font-size: 22px; font-weight: 700; color: var(--brown); }
+  .result-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 16px; position: relative; z-index: 2; }
+  .result-tag {
+    background: rgba(255,255,255,0.75); padding: 5px 12px; border-radius: 14px;
+    font-size: 11px; color: var(--brown); font-weight: 600; backdrop-filter: blur(10px);
+  }
+  .result-desc {
+    margin-top: 18px; font-size: 13.5px; line-height: 1.7;
+    color: var(--brown); font-weight: 500; position: relative; z-index: 2;
+  }
+  .result-highlight {
+    margin-top: 18px; padding: 12px 14px;
+    background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(10px);
+    border-radius: 16px; font-size: 12.5px; line-height: 1.6;
+    color: var(--brown); position: relative; z-index: 2;
+  }
+  .result-highlight strong { display: block; margin-bottom: 4px; font-size: 11px; color: var(--orange-deep); font-weight: 700; }
+
+  /* Section title */
+  .section-title {
+    font-size: 17px; font-weight: 700; color: var(--brown);
+    margin: 32px 0 16px; padding-left: 4px;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .section-title .icon-deco { font-size: 20px; }
+  .section-title .more { margin-left: auto; font-size: 12px; color: var(--brown-light); font-weight: 500; }
+
+  /* Reset */
+  .reset-btn {
+    width: 100%; padding: 14px; background: transparent;
+    border: 2px solid var(--peach); color: var(--brown-light);
+    border-radius: 18px; font-size: 13px; cursor: pointer; margin-top: 12px;
+    font-family: inherit; font-weight: 600; transition: all 0.3s;
+  }
+  .reset-btn:hover { color: var(--orange-deep); border-color: var(--orange); background: var(--peach); }
+
+  .footer { padding: 28px 20px; text-align: center; font-size: 11px; color: var(--muted); font-weight: 500; }
+  .footer .paws { margin-top: 6px; font-size: 14px; letter-spacing: 4px; opacity: 0.4; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-emoji">🐱</div>
+    <h1>喵格匹配</h1>
+    <p>读懂你的小毛孩，找到 TA 的灵魂伙伴</p>
+  </div>
+
+  <section id="screen-upload" class="screen active">
+    <div class="upload-zone" onclick="document.getElementById('sample-section').scrollIntoView({behavior:'smooth'})">
+      <div class="icon">🎥</div>
+      <div class="title">上传一段你家猫的视频</div>
+      <div class="hint">10-30 秒，记录 TA 的日常瞬间 ✨</div>
+    </div>
+
+    <div class="sample-section" id="sample-section">
+      <div class="sample-title">🐾 试试示例猫咪</div>
+      <div class="sample-grid">
+        <div class="sample-card" onclick="analyze('enfp')">
+          <span class="badge">活泼</span>
+          <span class="emoji">😺</span>
+          <span class="name">球球</span>
+          <span class="desc">凑镜头爱蹭人</span>
+        </div>
+        <div class="sample-card" onclick="analyze('intj')">
+          <span class="badge">高冷</span>
+          <span class="emoji">🐱</span>
+          <span class="name">小黑</span>
+          <span class="desc">高处观察一切</span>
+        </div>
+        <div class="sample-card" onclick="analyze('infp')">
+          <span class="badge">文艺</span>
+          <span class="emoji">😽</span>
+          <span class="name">团子</span>
+          <span class="desc">躲纸箱发呆</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-loading" class="screen">
+    <div class="loading-container">
+      <div class="loading-cat">🐱</div>
+      <div class="loading-text">AI 正在读懂你的小毛孩...</div>
+      <div class="loading-steps">
+        <div id="step-1">🎬 提取视频精彩瞬间</div>
+        <div id="step-2">🔍 观察猫咪小动作</div>
+        <div id="step-3">💭 分析性格小宇宙</div>
+        <div id="step-4">✨ 匹配 MBTI 类型</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="screen-result" class="screen">
+    <div class="result-card">
+      <div class="result-mbti-row">
+        <div class="result-mbti" id="result-mbti">ENFP</div>
+        <div class="result-nickname" id="result-nickname">阳光猫 ☀️</div>
+      </div>
+      <div class="result-tags" id="result-tags"></div>
+      <div class="result-desc" id="result-desc"></div>
+      <div class="result-highlight">
+        <strong>📸 高光时刻</strong>
+        <span id="result-highlight-text"></span>
+      </div>
+    </div>
+
+    <button class="reset-btn" onclick="reset()">↻ 重新测试</button>
+  </section>
+
+  <div class="footer">
+    娱乐结果仅供参考 · 抖音 AI 创变者计划
+    <div class="paws">🐾 🐾 🐾</div>
+  </div>
+</div>
+
+<script>
+const DATA = {
+  enfp: {
+    mbti: 'ENFP', nickname: '阳光猫 ☀️',
+    tags: ['热情', '好奇', '外向', '社交牛猫症'],
+    desc: '这只猫见谁都贴贴，对什么都感兴趣。镜头是它的舞台，铲屎官的腿是它的家。典型的「无社恐版猫咪」，能把家变成派对现场。',
+    highlight: '0:08 — 主动凑近镜头，连续蹭头 3 次，尾巴竖成感叹号',
+  },
+  intj: {
+    mbti: 'INTJ', nickname: '战略家猫 🎯',
+    tags: ['高冷', '计划', '独立', '思考型'],
+    desc: '这只猫站在高处观察一切。它不会轻易出手，但每一次行动都精准。它不需要你的爱，但你需要它的认可。',
+    highlight: '0:15 — 在柜顶静默观察 12 秒后，精准跳到目标位置',
+  },
+  infp: {
+    mbti: 'INFP', nickname: '艺术家猫 🎨',
+    tags: ['内向', '温柔', '敏感', '发呆派'],
+    desc: '这只猫住在自己的精神世界里。纸箱是它的工作室，阳光是它的灵感。它不爱热闹，但你只要轻轻坐在旁边，就是它最大的安全感。',
+    highlight: '0:22 — 在纸箱中凝视远方 18 秒，期间瞳孔放大、尾尖微动',
+  },
+};
+
+function analyze(type) {
+  showScreen('loading');
+  const steps = ['step-1', 'step-2', 'step-3', 'step-4'];
+  steps.forEach(id => document.getElementById(id).classList.remove('active', 'done'));
+  steps.forEach((id, i) => {
+    setTimeout(() => {
+      if (i > 0) document.getElementById(steps[i-1]).classList.replace('active', 'done');
+      document.getElementById(id).classList.add('active');
+    }, i * 700);
+  });
+  setTimeout(() => {
+    document.getElementById(steps[3]).classList.replace('active', 'done');
+    renderResult(type);
+    showScreen('result');
+  }, 3000);
+}
+
+function renderResult(type) {
+  const d = DATA[type];
+  document.getElementById('result-mbti').textContent = d.mbti;
+  document.getElementById('result-nickname').textContent = d.nickname;
+  document.getElementById('result-tags').innerHTML = d.tags.map(t => `<span class="result-tag">#${t}</span>`).join('');
+  document.getElementById('result-desc').textContent = d.desc;
+  document.getElementById('result-highlight-text').textContent = d.highlight;
+}
+
+function showScreen(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('screen-' + name).classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function reset() { showScreen('upload'); }
+</script>
+</body>
+</html>

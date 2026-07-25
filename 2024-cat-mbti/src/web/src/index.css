@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root {
+  height: 100%;
+}
+
+body {
+  background: theme(colors.cream);
+  color: theme(colors.brown);
+  -webkit-tap-highlight-color: transparent;
+  font-family: theme(fontFamily.sans);
+  /* 治愈版背景 —— 桃色 + 抹茶光晕 + 微点 */
+  background-image:
+    radial-gradient(circle at 10% 20%, theme(colors.peach) 0%, transparent 25%),
+    radial-gradient(circle at 90% 80%, theme(colors.matcha-light) 0%, transparent 25%);
+  background-attachment: fixed;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.05;
+  background-image: radial-gradient(circle, theme(colors.brown) 1.5px, transparent 1.5px);
+  background-size: 60px 60px;
+  z-index: 0;
+}
+
+.app-shell {
+  max-width: 420px;
+  margin: 0 auto;
+  min-height: 100vh;
+  position: relative;
+  z-index: 1;
+}

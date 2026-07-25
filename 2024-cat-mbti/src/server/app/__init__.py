@@ -1,0 +1,1 @@
+"""CatMBTI server package."""

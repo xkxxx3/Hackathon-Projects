@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Storage
+storage/
+
+# Env
+.env
+.env.local
